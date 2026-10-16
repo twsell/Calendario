@@ -1,10 +1,134 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Mi Primera Página</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Compartido en Tiempo Real</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h2 { color: #333; }
+        .calendar-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .day-name {
+            font-weight: bold;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef2f3;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            user-select: none;
+        }
+        .day:hover { background: #dee4e7; }
+        /* Estado cuando alguien señala el día */
+        .day.selected {
+            background-color: #ff4757;
+            color: white;
+            box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
+        }
+    </style>
 </head>
 <body>
-    <h1>¡Hola Mundo desde GitHub.io!</h1>
-    <p>Esta es mi nueva página web.</p>
+
+    <h2>📅 Calendario Compartido</h2>
+    <p>Haz clic en un día para marcarlo o desmarcarlo. Se actualizará para todos.</p>
+
+    <div class="calendar-container">
+        <div class="grid">
+            <!-- Cabecera de días -->
+            <div class="day-name">L</div><div class="day-name">M</div><div class="day-name">X</div>
+            <div class="day-name">J</div><div class="day-name">V</div><div class="day-name">S</div><div class="day-name">D</div>
+        </div>
+        <div class="grid" id="calendar-days">
+            <!-- Los días se generarán automáticamente aquí con JS -->
+        </div>
+    </div>
+
+    <!-- Importamos Firebase mediante CDN oficial (Versión clásica simplificada) -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+
+    <script>
+        // 1. CONFIGURACIÓN DE TU FIREBASE
+        // Reemplaza la URL de abajo por la de tu Firebase Realtime Database
+        const firebaseConfig = {
+            databaseURL: "https://calendario-48225-default-rtdb.europe-west1.firebasedatabase.app/" 
+        };
+        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const diasRef = database.ref('dias_seleccionados');
+
+        // 2. GENERAR DÍAS EN PANTALLA (Mes de 31 días estático para el ejemplo)
+        const calendarDaysContainer = document.getElementById('calendar-days');
+        const totalDias = 31;
+
+        for (let i = 1; i <= totalDias; i++) {
+            const div = document.createElement('div');
+            div.classList.add('day');
+            div.innerText = i;
+            div.setAttribute('id', `dia-${i}`);
+            
+            // Evento al hacer clic en un día
+            div.addEventListener('click', () => toggleDia(i));
+            
+            calendarDaysContainer.appendChild(div);
+        }
+
+        // 3. CAMBIAR ESTADO EN LA BASE DE DATOS (Escritura)
+        function toggleDia(numeroDia) {
+            const diaElemento = document.getElementById(`dia-${numeroDia}`);
+            const estaSeleccionado = diaElemento.classList.contains('selected');
+            
+            // Guardamos en Firebase: si ya estaba seleccionado lo borramos (null), si no, lo marcamos (true)
+            diasRef.child(numeroDia).set(estaSeleccionado ? null : true);
+        }
+
+        // 4. ESCUCHAR CAMBIOS EN TIEMPO REAL (Lectura automatizada)
+        diasRef.on('value', (snapshot) => {
+            const datos = snapshot.val() || {};
+            
+            // Limpiar todos los días primero
+            for (let i = 1; i <= totalDias; i++) {
+                document.getElementById(`dia-${i}`).classList.remove('selected');
+            }
+
+            // Pintar de rojo solo los días que existen en la base de datos
+            Object.keys(datos).forEach(numeroDia => {
+                const diaElemento = document.getElementById(`dia-${numeroDia}`);
+                if (diaElemento) {
+                    diaElemento.classList.add('selected');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
