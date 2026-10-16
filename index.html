@@ -1,134 +1,256 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendario Compartido en Tiempo Real</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-        h2 { color: #333; }
-        .calendar-container {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 400px;
-            width: 100%;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-top: 15px;
-        }
-        .day-name {
-            font-weight: bold;
-            text-align: center;
-            color: #666;
-            font-size: 14px;
-        }
-        .day {
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #eef2f3;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            user-select: none;
-        }
-        .day:hover { background: #dee4e7; }
-        /* Estado cuando alguien señala el día */
-        .day.selected {
-            background-color: #ff4757;
-            color: white;
-            box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Calendario compartido</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: light-dark(#f4f6fb, #11151e);
+      --surface: light-dark(#ffffff, #1a202c);
+      --surface-2: light-dark(#f5f7fb, #242c3a);
+      --text: light-dark(#202637, #f2f4fa);
+      --muted: light-dark(#6f788b, #aab3c5);
+      --border: light-dark(#e2e7f0, #343d4d);
+      --accent: #6558e8;
+      --accent-hover: #5145d0;
+      --danger: #d64561;
+      --shadow: 0 14px 38px light-dark(#24304a12, #00000035);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; padding: clamp(16px, 4vw, 42px); background: var(--bg); }
+    .shell { width: min(1040px, 100%); margin: 0 auto; }
+    .topline { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 26px; }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .brand-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 15px; background: var(--accent); color: white; font-size: 23px; box-shadow: 0 8px 20px #6558e833; }
+    h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); letter-spacing: -.7px; }
+    .subtitle { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
+    .profile { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+    .avatar { width: 13px; height: 13px; border-radius: 50%; background: var(--person-color, #6558e8); flex: 0 0 auto; }
+    .profile-name { font-size: 13px; font-weight: 650; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .text-button { border: 0; padding: 4px; color: var(--accent); background: transparent; font-size: 13px; font-weight: 700; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); }
+    .calendar-panel { padding: clamp(16px, 3vw, 28px); }
+    .calendar-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .month-title { font-size: clamp(20px, 3vw, 25px); font-weight: 760; letter-spacing: -.6px; }
+    .month-controls { display: flex; align-items: center; gap: 8px; }
+    .icon-button { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font-size: 20px; }
+    .icon-button:hover { background: var(--surface-2); }
+    .today-button { padding: 9px 12px; border: 1px solid var(--border); border-radius: 11px; color: var(--text); background: var(--surface); font-size: 13px; font-weight: 650; }
+    .weekdays, .days-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+    .weekdays { margin-bottom: 8px; }
+    .weekday { text-align: center; color: var(--muted); font-size: 11px; font-weight: 750; text-transform: uppercase; padding: 8px 0; }
+    .day { min-width: 0; min-height: 88px; display: flex; flex-direction: column; align-items: flex-start; padding: 9px; border: 1px solid transparent; border-radius: 13px; background: var(--surface-2); color: var(--text); text-align: left; transition: border-color .15s, transform .15s, background .15s; }
+    .day:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .day.outside { opacity: .42; }
+    .day.today .day-number { background: var(--accent); color: #fff; }
+    .day.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+    .day-number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; font-size: 13px; font-weight: 700; }
+    .event-markers { display: flex; gap: 4px; margin-top: auto; padding-top: 8px; width: 100%; overflow: hidden; }
+    .event-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+    .event-label { display: block; width: 100%; margin-top: 5px; font-size: 10px; line-height: 1.25; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .side { display: grid; gap: 16px; }
+    .side-card { padding: 20px; }
+    .side-heading { margin: 0 0 14px; font-size: 15px; letter-spacing: -.2px; }
+    .status { display: flex; align-items: flex-start; gap: 9px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; background: #d8a441; flex: 0 0 auto; }
+    .status-dot.online { background: #2bb780; }
+    .event-list { display: grid; gap: 12px; }
+    .event-item { border-left: 3px solid var(--event-color, var(--accent)); padding: 2px 0 2px 11px; min-width: 0; }
+    .event-date { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .event-title { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+    .event-meta { margin-top: 4px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .empty { color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .primary-button { border: 0; border-radius: 12px; background: var(--accent); color: white; font-weight: 700; padding: 12px 15px; width: 100%; box-shadow: 0 6px 16px #6558e82b; }
+    .primary-button:hover { background: var(--accent-hover); }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--border); }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+    .legend-color { width: 8px; height: 8px; border-radius: 50%; }
+    .modal-backdrop { display: none; position: fixed; inset: 0; z-index: 5; padding: 18px; background: #090d18a8; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(460px, 100%); max-height: 90vh; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 24px; box-shadow: 0 24px 80px #0004; }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+    .modal h2 { margin: 0; font-size: 21px; }
+    .modal-subtitle { color: var(--muted); font-size: 13px; margin-top: 5px; }
+    .close-button { border: 0; background: var(--surface-2); color: var(--text); border-radius: 10px; width: 34px; height: 34px; font-size: 20px; }
+    .field { display: grid; gap: 7px; margin-bottom: 15px; }
+    .field label { font-size: 12px; font-weight: 750; color: var(--muted); }
+    .field input, .field textarea { width: 100%; border: 1px solid var(--border); border-radius: 11px; padding: 11px 12px; background: var(--surface-2); color: var(--text); outline: none; }
+    .field input:focus, .field textarea:focus { border-color: var(--accent); }
+    .field textarea { min-height: 90px; resize: vertical; }
+    .color-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .color-choice { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--surface); outline: 1px solid var(--border); padding: 0; }
+    .color-choice.active { outline: 2px solid var(--text); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .secondary-button { flex: 1; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 12px; padding: 12px; font-weight: 700; }
+    .modal-actions .primary-button { flex: 1.5; }
+    .notice { margin-top: 18px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    @media (max-width: 780px) { .layout { grid-template-columns: 1fr; } .side { grid-template-columns: repeat(2, minmax(0, 1fr)); } .side-card:last-child { grid-column: 1 / -1; } }
+    @media (max-width: 520px) { .app { padding: 14px 10px 24px; } .topline { align-items: flex-start; } .brand-icon { width: 40px; height: 40px; border-radius: 13px; } .subtitle { max-width: 210px; font-size: 12px; } .profile { padding: 8px; gap: 7px; } .profile-name { max-width: 72px; font-size: 12px; } .text-button { font-size: 12px; } .calendar-panel { padding: 13px 10px; border-radius: 18px; } .calendar-head { margin-bottom: 14px; } .month-title { font-size: 19px; } .month-controls { gap: 5px; } .icon-button { width: 32px; height: 34px; border-radius: 10px; } .today-button { padding: 8px; font-size: 11px; } .weekdays, .days-grid { gap: 4px; } .weekday { font-size: 10px; } .day { min-height: 65px; padding: 5px 4px; border-radius: 9px; } .day-number { width: 24px; height: 24px; font-size: 12px; } .event-label { font-size: 9px; } .side { grid-template-columns: 1fr; } .side-card:last-child { grid-column: auto; } }
+  </style>
 </head>
 <body>
-
-    <h2>📅 Calendario Compartido</h2>
-    <p>Haz clic en un día para marcarlo o desmarcarlo. Se actualizará para todos.</p>
-
-    <div class="calendar-container">
-        <div class="grid">
-            <!-- Cabecera de días -->
-            <div class="day-name">L</div><div class="day-name">M</div><div class="day-name">X</div>
-            <div class="day-name">J</div><div class="day-name">V</div><div class="day-name">S</div><div class="day-name">D</div>
+  <main class="app">
+    <div class="shell">
+      <header class="topline">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">▦</div>
+          <div><h1>Calendario compartido</h1><p class="subtitle">Organiza tus días, en equipo y en tiempo real.</p></div>
         </div>
-        <div class="grid" id="calendar-days">
-            <!-- Los días se generarán automáticamente aquí con JS -->
-        </div>
+        <div class="profile"><span class="avatar" id="profile-avatar"></span><span class="profile-name" id="profile-name">Invitado</span><button class="text-button" id="edit-profile">Editar</button></div>
+      </header>
+      <div class="layout">
+        <section class="panel calendar-panel" aria-label="Calendario">
+          <div class="calendar-head">
+            <div><div class="month-title" id="month-title">Mes</div><div class="subtitle" id="month-subtitle">Selecciona un día para ver sus eventos</div></div>
+            <div class="month-controls"><button class="icon-button" id="prev-month" aria-label="Mes anterior">‹</button><button class="icon-button" id="next-month" aria-label="Mes siguiente">›</button><button class="today-button" id="go-today">Hoy</button></div>
+          </div>
+          <div class="weekdays" aria-hidden="true"><div class="weekday">Lun</div><div class="weekday">Mar</div><div class="weekday">Mié</div><div class="weekday">Jue</div><div class="weekday">Vie</div><div class="weekday">Sáb</div><div class="weekday">Dom</div></div>
+          <div class="days-grid" id="days-grid"></div>
+          <div class="legend" id="legend"></div>
+        </section>
+        <aside class="side">
+          <section class="panel side-card"><h2 class="side-heading">Conexión</h2><div class="status"><span class="status-dot" id="connection-dot"></span><span id="connection-text">Conectando con Firebase…</span></div><p class="notice" id="connection-help">La sincronización requiere que Firebase esté configurado y que la autenticación anónima esté habilitada.</p></section>
+          <section class="panel side-card"><h2 class="side-heading">Próximos eventos</h2><div class="event-list" id="upcoming-events"><p class="empty">Todavía no hay eventos. Añade uno desde cualquier día del calendario.</p></div></section>
+          <section class="panel side-card"><h2 class="side-heading">Añadir evento</h2><p class="empty">Selecciona una fecha para crear o actualizar su evento, añadir notas y dejar constancia de quién lo ha editado.</p><button class="primary-button" id="quick-add">＋ Crear evento</button><p class="notice">Cada evento muestra el nombre y el color de la persona que lo guardó por última vez.</p></section>
+        </aside>
+      </div>
     </div>
+  </main>
+  <div class="modal-backdrop" id="event-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <form class="modal" id="event-form">
+      <div class="modal-head"><div><h2 id="modal-title">Evento del día</h2><div class="modal-subtitle" id="modal-date"></div></div><button type="button" class="close-button" id="close-modal" aria-label="Cerrar">×</button></div>
+      <div class="field"><label for="event-title">Evento / título</label><input id="event-title" maxlength="100" placeholder="Ej. Cena de equipo"></div>
+      <div class="field"><label for="event-notes">Notas</label><textarea id="event-notes" maxlength="1500" placeholder="Añade detalles, lugar, recordatorios…"></textarea></div>
+      <div class="field"><label>Tu color</label><div class="color-row" id="color-choices"></div></div>
+      <div class="field" id="last-editor-field" hidden><label>Última edición</label><div class="empty" id="last-editor"></div></div>
+      <div class="modal-actions"><button type="button" class="secondary-button" id="cancel-modal">Cancelar</button><button type="submit" class="primary-button" id="save-event">Guardar evento</button></div>
+      <p class="notice">Al guardar, el evento se sincroniza con las demás personas que tengan acceso a esta base de datos.</p>
+    </form>
+  </div>
+  <div class="modal-backdrop" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+    <form class="modal" id="profile-form"><div class="modal-head"><div><h2 id="profile-title">Tu perfil</h2><div class="modal-subtitle">Tu nombre y color aparecerán en los eventos que guardes.</div></div><button type="button" class="close-button" id="close-profile" aria-label="Cerrar">×</button></div><div class="field"><label for="name-input">Nombre visible</label><input id="name-input" maxlength="40" placeholder="Ej. Alex" required></div><div class="field"><label>Color personal</label><div class="color-row" id="profile-colors"></div></div><div class="modal-actions"><button type="button" class="secondary-button" id="cancel-profile">Cancelar</button><button type="submit" class="primary-button">Guardar perfil</button></div><p class="notice">Este nombre es una etiqueta visible, no una verificación de identidad. Para producción, combina Firebase Authentication con reglas de acceso apropiadas.</p></form>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    // Firebase project from the original example. Check that Anonymous Authentication is enabled.
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5e8Pw6A1F_Pe8DtSwglEKqprLAV9RIww", // Optional for this database-only setup; add your Web API key from Firebase project settings if required.
+      authDomain: "calendario-48225.firebaseapp.com",
+      databaseURL: "https://calendario-48225-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "calendario-48225",
+      appId: "AIzaSyD5e8Pw6A1F_Pe8DtSwglEKqprLAV9RIww" // Add the Web App ID from Firebase project settings if required by your configuration.
+    };
+    const COLORS = ["#6558e8", "#e05270", "#159d83", "#e39b2f", "#2878d0", "#a34bc0", "#64748b", "#db6b35"];
+    const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const prettyDate = d => `${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`;
+    const today = new Date();
+    let viewYear = today.getFullYear(), viewMonth = today.getMonth(), selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let events = {}, database = null, authUser = null, firebaseReady = false;
+    let profile = { name: localStorage.getItem("calendar-name") || "Invitado", color: localStorage.getItem("calendar-color") || COLORS[0] };
+    const $ = id => document.getElementById(id);
 
-    <!-- Importamos Firebase mediante CDN oficial (Versión clásica simplificada) -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-
-    <script>
-        // 1. CONFIGURACIÓN DE TU FIREBASE
-        // Reemplaza la URL de abajo por la de tu Firebase Realtime Database
-        const firebaseConfig = {
-            databaseURL: "https://calendario-48225-default-rtdb.europe-west1.firebasedatabase.app/" 
-        };
-        
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const diasRef = database.ref('dias_seleccionados');
-
-        // 2. GENERAR DÍAS EN PANTALLA (Mes de 31 días estático para el ejemplo)
-        const calendarDaysContainer = document.getElementById('calendar-days');
-        const totalDias = 31;
-
-        for (let i = 1; i <= totalDias; i++) {
-            const div = document.createElement('div');
-            div.classList.add('day');
-            div.innerText = i;
-            div.setAttribute('id', `dia-${i}`);
-            
-            // Evento al hacer clic en un día
-            div.addEventListener('click', () => toggleDia(i));
-            
-            calendarDaysContainer.appendChild(div);
-        }
-
-        // 3. CAMBIAR ESTADO EN LA BASE DE DATOS (Escritura)
-        function toggleDia(numeroDia) {
-            const diaElemento = document.getElementById(`dia-${numeroDia}`);
-            const estaSeleccionado = diaElemento.classList.contains('selected');
-            
-            // Guardamos en Firebase: si ya estaba seleccionado lo borramos (null), si no, lo marcamos (true)
-            diasRef.child(numeroDia).set(estaSeleccionado ? null : true);
-        }
-
-        // 4. ESCUCHAR CAMBIOS EN TIEMPO REAL (Lectura automatizada)
-        diasRef.on('value', (snapshot) => {
-            const datos = snapshot.val() || {};
-            
-            // Limpiar todos los días primero
-            for (let i = 1; i <= totalDias; i++) {
-                document.getElementById(`dia-${i}`).classList.remove('selected');
-            }
-
-            // Pintar de rojo solo los días que existen en la base de datos
-            Object.keys(datos).forEach(numeroDia => {
-                const diaElemento = document.getElementById(`dia-${numeroDia}`);
-                if (diaElemento) {
-                    diaElemento.classList.add('selected');
-                }
-            });
-        });
-    </script>
+    function setConnection(online, message, help) {
+      $("connection-dot").classList.toggle("online", online);
+      $("connection-text").textContent = message;
+      if (help) $("connection-help").textContent = help;
+    }
+    function renderProfile() {
+      $("profile-name").textContent = profile.name;
+      $("profile-avatar").style.setProperty("--person-color", profile.color);
+      renderLegend();
+    }
+    function renderColorChoices(containerId, selectedColor, callback) {
+      const container = $(containerId); container.replaceChildren();
+      COLORS.forEach(color => {
+        const button = document.createElement("button"); button.type = "button"; button.className = "color-choice" + (color === selectedColor ? " active" : ""); button.style.background = color; button.setAttribute("aria-label", `Elegir color ${color}`); button.setAttribute("aria-pressed", String(color === selectedColor));
+        button.addEventListener("click", () => { callback(color); renderColorChoices(containerId, color, callback); }); container.appendChild(button);
+      });
+    }
+    function renderLegend() {
+      const people = new Map();
+      Object.values(events).forEach(ev => { if (ev && ev.updatedByName) people.set(ev.updatedByName, ev.updatedByColor || COLORS[0]); });
+      people.set(profile.name, profile.color);
+      const legend = $("legend"); legend.replaceChildren();
+      [...people.entries()].slice(0, 8).forEach(([name,color]) => { const item=document.createElement("div"); item.className="legend-item"; const dot=document.createElement("span"); dot.className="legend-color"; dot.style.background=color; const label=document.createElement("span"); label.textContent=name; item.append(dot,label); legend.appendChild(item); });
+    }
+    function renderCalendar() {
+      $("month-title").textContent = `${MONTHS[viewMonth][0].toUpperCase()+MONTHS[viewMonth].slice(1)} ${viewYear}`;
+      $("month-subtitle").textContent = "Selecciona un día para ver o editar su evento";
+      const first = new Date(viewYear, viewMonth, 1);
+      const offset = (first.getDay() + 6) % 7;
+      const gridStart = new Date(viewYear, viewMonth, 1-offset);
+      const grid = $("days-grid"); grid.replaceChildren();
+      for (let i=0; i<42; i++) {
+        const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+i), key=dateKey(d), ev=events[key];
+        const button=document.createElement("button"); button.type="button"; button.className="day"; if(d.getMonth()!==viewMonth) button.classList.add("outside"); if(key===dateKey(today)) button.classList.add("today"); if(key===dateKey(selectedDate)) button.classList.add("selected");
+        button.setAttribute("aria-label", `${prettyDate(d)}${ev && ev.title ? ", "+ev.title : ""}`);
+        const number=document.createElement("span"); number.className="day-number"; number.textContent=d.getDate(); button.appendChild(number);
+        if(ev && (ev.title || ev.notes)) { const label=document.createElement("span"); label.className="event-label"; label.textContent=ev.title || "Nota"; button.appendChild(label); const markers=document.createElement("span"); markers.className="event-markers"; const dot=document.createElement("span"); dot.className="event-dot"; dot.style.background=ev.updatedByColor || COLORS[0]; dot.title=ev.updatedByName || "Participante"; markers.appendChild(dot); button.appendChild(markers); }
+        button.addEventListener("click", () => { selectedDate=d; if(d.getMonth()!==viewMonth){viewMonth=d.getMonth();viewYear=d.getFullYear();} renderCalendar(); openEventModal(d); }); grid.appendChild(button);
+      }
+      renderUpcoming(); renderLegend();
+    }
+    function renderUpcoming() {
+      const list=$("upcoming-events"); list.replaceChildren();
+      const todayKey=dateKey(today);
+      const upcoming=Object.entries(events).filter(([key,ev])=>key>=todayKey && ev && (ev.title || ev.notes)).sort(([a],[b])=>a.localeCompare(b)).slice(0,5);
+      if(!upcoming.length){const p=document.createElement("p");p.className="empty";p.textContent="Todavía no hay próximos eventos. Añade uno desde cualquier día del calendario.";list.appendChild(p);return;}
+      upcoming.forEach(([key,ev])=>{const item=document.createElement("div");item.className="event-item";item.style.setProperty("--event-color",ev.updatedByColor||COLORS[0]);const date=document.createElement("div");date.className="event-date";date.textContent=new Date(key+"T12:00:00").toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"});const title=document.createElement("div");title.className="event-title";title.textContent=ev.title||"Nota";const meta=document.createElement("div");meta.className="event-meta";meta.textContent=`${ev.updatedByName||"Participante"}${ev.notes?" · "+ev.notes:""}`;item.append(date,title,meta);item.addEventListener("click",()=>{selectedDate=new Date(key+"T12:00:00");viewYear=selectedDate.getFullYear();viewMonth=selectedDate.getMonth();renderCalendar();openEventModal(selectedDate);});list.appendChild(item);});
+    }
+    function openEventModal(date) {
+      selectedDate=new Date(date.getFullYear(),date.getMonth(),date.getDate()); const key=dateKey(selectedDate), ev=events[key]||{};
+      $("modal-title").textContent=ev.title?"Editar evento":"Añadir evento"; $("modal-date").textContent=prettyDate(selectedDate); $("event-title").value=ev.title||""; $("event-notes").value=ev.notes||"";
+      $("last-editor-field").hidden=!ev.updatedByName; $("last-editor").textContent=ev.updatedByName?`${ev.updatedByName}${ev.updatedAt?" · "+new Date(ev.updatedAt).toLocaleString("es-ES"):""}`:"";
+      renderColorChoices("color-choices",profile.color,color=>{profile.color=color;renderProfile();}); $("event-modal").classList.add("open"); setTimeout(()=>$("event-title").focus(),50);
+    }
+    function closeEventModal() { $("event-modal").classList.remove("open"); }
+    function openProfileModal() { $("name-input").value=profile.name==="Invitado"?"":profile.name; renderColorChoices("profile-colors",profile.color,color=>{profile.color=color;}); $("profile-modal").classList.add("open"); }
+    function closeProfileModal() { $("profile-modal").classList.remove("open"); }
+    async function saveEvent(event) {
+      event.preventDefault(); const key=dateKey(selectedDate), title=$("event-title").value.trim(), notes=$("event-notes").value.trim();
+      if(!title && !notes) {
+        if(firebaseReady && database){try{await database.ref(`calendar_events/${key}`).remove();}catch(err){alert("No se pudo borrar el evento: "+err.message);return;}}
+        else {delete events[key];}
+        closeEventModal();renderCalendar();return;
+      }
+      const record={title,notes,updatedBy:authUser?authUser.uid:"local-preview",updatedByName:profile.name,updatedByColor:profile.color,updatedAt:Date.now()};
+      try {
+        if(firebaseReady && database) await database.ref(`calendar_events/${key}`).set(record);
+        else {events[key]=record; setConnection(false,"Modo de demostración local","Firebase no está conectado: los cambios solo se guardan en esta pestaña y no se comparten con otros dispositivos.");}
+        closeEventModal();renderCalendar();
+      } catch(err) { alert("No se pudo guardar en Firebase. Comprueba las reglas de Realtime Database y la conexión.\n"+err.message); }
+    }
+    function initFirebase() {
+      if(!window.firebase || !firebase.apps) { setConnection(false,"Modo de demostración local","No se han podido cargar las bibliotecas de Firebase. La vista sigue funcionando localmente, pero no sincroniza dispositivos."); return; }
+      try {
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth=firebase.auth(); database=firebase.database();
+        auth.signInAnonymously().then(userCredential=>{
+          authUser=userCredential.user; firebaseReady=true; setConnection(true,"Conectado · sincronización activa","Sesión anónima de Firebase activa. Los cambios de calendario se sincronizan en tiempo real.");
+          database.ref("calendar_events").on("value",snapshot=>{events=snapshot.val()||{};renderCalendar();},error=>{firebaseReady=false;setConnection(false,"Error al leer la base de datos",error.message);});
+        }).catch(err=>{setConnection(false,"No se pudo iniciar sesión",`Activa Authentication → Sign-in method → Anonymous en Firebase. Detalle: ${err.message}`);});
+      } catch(err) { setConnection(false,"Firebase no está configurado",`Revisa la configuración de la app web y las reglas de Realtime Database. Detalle: ${err.message}`); }
+    }
+    $("prev-month").addEventListener("click",()=>{viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}renderCalendar();});
+    $("next-month").addEventListener("click",()=>{viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}renderCalendar();});
+    $("go-today").addEventListener("click",()=>{viewYear=today.getFullYear();viewMonth=today.getMonth();selectedDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());renderCalendar();});
+    $("quick-add").addEventListener("click",()=>openEventModal(selectedDate));
+    $("close-modal").addEventListener("click",closeEventModal); $("cancel-modal").addEventListener("click",closeEventModal); $("event-form").addEventListener("submit",saveEvent);
+    $("event-modal").addEventListener("click",e=>{if(e.target===$("event-modal"))closeEventModal();});
+    $("edit-profile").addEventListener("click",openProfileModal); $("close-profile").addEventListener("click",closeProfileModal); $("cancel-profile").addEventListener("click",closeProfileModal); $("profile-modal").addEventListener("click",e=>{if(e.target===$("profile-modal"))closeProfileModal();});
+    $("profile-form").addEventListener("submit",e=>{e.preventDefault();profile.name=$("name-input").value.trim()||"Invitado";localStorage.setItem("calendar-name",profile.name);localStorage.setItem("calendar-color",profile.color);renderProfile();closeProfileModal();renderCalendar();});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeEventModal();closeProfileModal();}});
+    renderProfile(); renderCalendar(); initFirebase();
+  </script>
 </body>
 </html>
