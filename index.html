@@ -1,258 +1,114 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <title>Calendario compartido</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: light-dark(#f4f6fb, #11151e);
-      --surface: light-dark(#ffffff, #1a202c);
-      --surface-2: light-dark(#f5f7fb, #242c3a);
-      --text: light-dark(#202637, #f2f4fa);
-      --muted: light-dark(#6f788b, #aab3c5);
-      --border: light-dark(#e2e7f0, #343d4d);
-      --accent: #6558e8;
-      --accent-hover: #5145d0;
-      --danger: #d64561;
-      --shadow: 0 14px 38px light-dark(#24304a12, #00000035);
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    button, input, textarea { font: inherit; }
-    button { cursor: pointer; }
-    .app { min-height: 100vh; padding: clamp(16px, 4vw, 42px); background: var(--bg); }
-    .shell { width: min(1040px, 100%); margin: 0 auto; }
-    .topline { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 26px; }
-    .brand { display: flex; gap: 12px; align-items: center; }
-    .brand-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 15px; background: var(--accent); color: white; font-size: 23px; box-shadow: 0 8px 20px #6558e833; }
-    h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); letter-spacing: -.7px; }
-    .subtitle { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
-    .profile { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
-    .avatar { width: 13px; height: 13px; border-radius: 50%; background: var(--person-color, #6558e8); flex: 0 0 auto; }
-    .profile-name { font-size: 13px; font-weight: 650; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .text-button { border: 0; padding: 4px; color: var(--accent); background: transparent; font-size: 13px; font-weight: 700; }
-    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
-    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); }
-    .calendar-panel { padding: clamp(16px, 3vw, 28px); }
-    .calendar-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; }
-    .month-title { font-size: clamp(20px, 3vw, 25px); font-weight: 760; letter-spacing: -.6px; }
-    .month-controls { display: flex; align-items: center; gap: 8px; }
-    .icon-button { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font-size: 20px; }
-    .icon-button:hover { background: var(--surface-2); }
-    .today-button { padding: 9px 12px; border: 1px solid var(--border); border-radius: 11px; color: var(--text); background: var(--surface); font-size: 13px; font-weight: 650; }
-    .weekdays, .days-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
-    .weekdays { margin-bottom: 8px; }
-    .weekday { text-align: center; color: var(--muted); font-size: 11px; font-weight: 750; text-transform: uppercase; padding: 8px 0; }
-    .day { min-width: 0; min-height: 88px; display: flex; flex-direction: column; align-items: flex-start; padding: 9px; border: 1px solid transparent; border-radius: 13px; background: var(--surface-2); color: var(--text); text-align: left; transition: border-color .15s, transform .15s, background .15s; }
-    .day:hover { border-color: var(--accent); transform: translateY(-1px); }
-    .day.outside { opacity: .42; }
-    .day.today .day-number { background: var(--accent); color: #fff; }
-    .day.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-    .day-number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; font-size: 13px; font-weight: 700; }
-    .event-markers { display: flex; gap: 4px; margin-top: auto; padding-top: 8px; width: 100%; overflow: hidden; }
-    .event-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
-    .event-label { display: block; width: 100%; margin-top: 5px; font-size: 10px; line-height: 1.25; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .side { display: grid; gap: 16px; }
-    .side-card { padding: 20px; }
-    .side-heading { margin: 0 0 14px; font-size: 15px; letter-spacing: -.2px; }
-    .status { display: flex; align-items: flex-start; gap: 9px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; background: #d8a441; flex: 0 0 auto; }
-    .status-dot.online { background: #2bb780; }
-    .event-list { display: grid; gap: 12px; }
-    .event-item { border-left: 3px solid var(--event-color, var(--accent)); padding: 2px 0 2px 11px; min-width: 0; }
-    .event-date { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
-    .event-title { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
-    .event-meta { margin-top: 4px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
-    .empty { color: var(--muted); font-size: 13px; line-height: 1.55; }
-    .primary-button { border: 0; border-radius: 12px; background: var(--accent); color: white; font-weight: 700; padding: 12px 15px; width: 100%; box-shadow: 0 6px 16px #6558e82b; }
-    .primary-button:hover { background: var(--accent-hover); }
-    .legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--border); }
-    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
-    .legend-color { width: 8px; height: 8px; border-radius: 50%; }
-    .modal-backdrop { display: none; position: fixed; inset: 0; z-index: 5; padding: 18px; background: #090d18a8; align-items: center; justify-content: center; }
-    .modal-backdrop.open { display: flex; }
-    .modal { width: min(460px, 100%); max-height: 90vh; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 24px; box-shadow: 0 24px 80px #0004; }
-    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-    .modal h2 { margin: 0; font-size: 21px; }
-    .modal-subtitle { color: var(--muted); font-size: 13px; margin-top: 5px; }
-    .close-button { border: 0; background: var(--surface-2); color: var(--text); border-radius: 10px; width: 34px; height: 34px; font-size: 20px; }
-    .field { display: grid; gap: 7px; margin-bottom: 15px; }
-    .field label { font-size: 12px; font-weight: 750; color: var(--muted); }
-    .field input, .field textarea { width: 100%; border: 1px solid var(--border); border-radius: 11px; padding: 11px 12px; background: var(--surface-2); color: var(--text); outline: none; }
-    .field input:focus, .field textarea:focus { border-color: var(--accent); }
-    .field textarea { min-height: 90px; resize: vertical; }
-    .color-row { display: flex; gap: 10px; flex-wrap: wrap; }
-    .color-choice { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--surface); outline: 1px solid var(--border); padding: 0; }
-    .color-choice.active { outline: 2px solid var(--text); }
-    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
-    .secondary-button { flex: 1; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 12px; padding: 12px; font-weight: 700; }
-    .modal-actions .primary-button { flex: 1.5; }
-    .notice { margin-top: 18px; color: var(--muted); font-size: 11px; line-height: 1.55; }
-    .notice2 { color: var(--muted); font-size: 11px; line-height: 1.55; }
-    @media (max-width: 780px) { .layout { grid-template-columns: 1fr; } .side { grid-template-columns: repeat(2, minmax(0, 1fr)); } .side-card:last-child { grid-column: 1 / -1; } }
-    @media (max-width: 520px) { .app { padding: 14px 10px 24px; } .topline { align-items: flex-start; } .brand-icon { width: 40px; height: 40px; border-radius: 13px; } .subtitle { max-width: 210px; font-size: 12px; } .profile { padding: 8px; gap: 7px; } .profile-name { max-width: 72px; font-size: 12px; } .text-button { font-size: 12px; } .calendar-panel { padding: 13px 10px; border-radius: 18px; } .calendar-head { margin-bottom: 14px; } .month-title { font-size: 19px; } .month-controls { gap: 5px; } .icon-button { width: 32px; height: 34px; border-radius: 10px; } .today-button { padding: 8px; font-size: 11px; } .weekdays, .days-grid { gap: 4px; } .weekday { font-size: 10px; } .day { min-height: 65px; padding: 5px 4px; border-radius: 9px; } .day-number { width: 24px; height: 24px; font-size: 12px; } .event-label { font-size: 9px; } .side { grid-template-columns: 1fr; } .side-card:last-child { grid-column: auto; } }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Calendario Auto+</title>
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#f4f6fb,#11151e);--surface:light-dark(#fff,#1a202c);--surface2:light-dark(#f5f7fb,#242c3a);--text:light-dark(#202637,#f2f4fa);--muted:light-dark(#6f788b,#aab3c5);--border:light-dark(#e2e7f0,#343d4d);--accent:#6558e8;--danger:#d64561;--shadow:0 14px 38px light-dark(#24304a12,#00000035)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;padding:clamp(14px,4vw,42px)}.shell{width:min(1100px,100%);margin:auto}.topline{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.brand{display:flex;gap:12px;align-items:center}.brand-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:15px;background:var(--accent);color:white;font-size:23px}h1{margin:0;font-size:clamp(22px,3vw,30px);letter-spacing:-.7px}.subtitle{margin:5px 0 0;color:var(--muted);font-size:13px}.profile{display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:14px}.avatar{width:13px;height:13px;border-radius:50%;background:var(--person-color,#6558e8)}.profile-name{font-size:13px;font-weight:650;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.text-button{border:0;padding:4px;color:var(--accent);background:transparent;font-size:13px;font-weight:700}.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;align-items:start}.panel{background:var(--surface);border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow)}.calendar-panel{padding:clamp(13px,3vw,28px)}.calendar-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.month-title{font-size:clamp(20px,3vw,25px);font-weight:760;letter-spacing:-.6px}.month-controls{display:flex;align-items:center;gap:7px}.icon-button{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--border);border-radius:11px;background:var(--surface);color:var(--text);font-size:20px}.today-button{padding:9px 11px;border:1px solid var(--border);border-radius:11px;color:var(--text);background:var(--surface);font-size:12px;font-weight:650}.weekdays,.days-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.weekdays{margin-bottom:8px}.weekday{text-align:center;color:var(--muted);font-size:11px;font-weight:750;text-transform:uppercase;padding:7px 0}.day{min-width:0;min-height:86px;display:flex;flex-direction:column;align-items:flex-start;padding:7px;border:1px solid transparent;border-radius:12px;background:var(--surface2);color:var(--text);text-align:left}.day:hover,.day.selected{border-color:var(--accent)}.day.outside{opacity:.42}.day.today .day-number{background:var(--accent);color:#fff}.day.selected{box-shadow:inset 0 0 0 1px var(--accent)}.day-number{display:grid;place-items:center;width:27px;height:27px;border-radius:9px;font-size:12px;font-weight:700}.day-events{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto;padding-top:8px;width:100%;overflow:hidden}.event-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}.event-label{display:block;width:100%;margin-top:4px;font-size:9px;line-height:1.25;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.side{display:grid;gap:15px}.side-card{padding:18px}.side-heading{margin:0 0 13px;font-size:15px}.status{display:flex;align-items:flex-start;gap:9px;color:var(--muted);font-size:12px;line-height:1.5}.status-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;background:#d8a441;flex:none}.status-dot.online{background:#2bb780}.event-list{display:grid;gap:12px}.event-item{border-left:3px solid var(--event-color,var(--accent));padding:3px 0 3px 10px;min-width:0}.event-date{font-size:11px;color:var(--muted);margin-bottom:3px}.event-title{font-size:13px;font-weight:700;overflow-wrap:anywhere}.event-meta{margin-top:4px;color:var(--muted);font-size:11px;overflow-wrap:anywhere}.empty{color:var(--muted);font-size:13px;line-height:1.55}.primary-button{border:0;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;padding:12px 15px;width:100%}.secondary-button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:12px;padding:11px;font-weight:700}.legend{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:18px;padding-top:15px;border-top:1px solid var(--border)}.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}.legend-color{width:8px;height:8px;border-radius:50%}.modal-backdrop{display:none;position:fixed;inset:0;z-index:5;padding:18px;background:#090d18a8;align-items:center;justify-content:center}.modal-backdrop.open{display:flex}.modal{width:min(480px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:23px;box-shadow:0 24px 80px #0004}.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}.modal h2{margin:0;font-size:21px}.modal-subtitle{color:var(--muted);font-size:13px;margin-top:5px}.close-button{border:0;background:var(--surface2);color:var(--text);border-radius:10px;width:34px;height:34px;font-size:20px}.field{display:grid;gap:7px;margin-bottom:14px}.field label{font-size:12px;font-weight:750;color:var(--muted)}.field input,.field textarea,.field select{width:100%;border:1px solid var(--border);border-radius:11px;padding:11px 12px;background:var(--surface2);color:var(--text);outline:none}.field textarea{min-height:80px;resize:vertical}.color-row{display:flex;gap:10px;flex-wrap:wrap}.color-choice{width:28px;height:28px;border-radius:50%;border:3px solid var(--surface);outline:1px solid var(--border);padding:0}.color-choice.active{outline:2px solid var(--text)}.modal-actions{display:flex;gap:9px;margin-top:20px}.modal-actions>*{flex:1}.notice{margin-top:15px;color:var(--muted);font-size:11px;line-height:1.55}.event-row{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:12px;padding:11px}.event-row-color{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none}.event-row-main{flex:1;min-width:0}.event-row-title{font-weight:700;font-size:13px;overflow-wrap:anywhere}.event-row-notes{font-size:12px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px}.small-actions{display:flex;gap:6px}.small-actions button{border:1px solid var(--border);border-radius:8px;padding:5px 7px;background:var(--surface2);color:var(--text);font-size:11px}.small-actions .delete{color:var(--danger)}.section-label{font-size:12px;font-weight:750;color:var(--muted);margin:17px 0 9px}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr))}.side-card:last-child{grid-column:1/-1}}@media(max-width:520px){.app{padding:13px 9px 24px}.topline{align-items:flex-start}.brand-icon{width:40px;height:40px;border-radius:13px}.subtitle{font-size:11px;max-width:210px}.profile{padding:7px;gap:6px}.profile-name{max-width:68px;font-size:11px}.calendar-panel{padding:12px 8px;border-radius:17px}.calendar-head{align-items:flex-start}.month-title{font-size:18px}.month-controls{gap:4px}.icon-button{width:30px;height:32px}.today-button{padding:8px;font-size:10px}.weekdays,.days-grid{gap:3px}.weekday{font-size:9px}.day{min-height:62px;padding:4px 3px;border-radius:8px}.day-number{width:23px;height:23px;font-size:11px}.event-label{font-size:8px}.side{grid-template-columns:1fr}.side-card:last-child{grid-column:auto}.modal{padding:17px}}
+</style>
 </head>
 <body>
-  <main class="app">
-    <div class="shell">
-      <header class="topline">
-        <div class="brand">
-          <div class="brand-icon" aria-hidden="true">▦</div>
-          <div><h1>Calendario Auto+</h1><p class="subtitle">Vacaciones, días de libre disposición y festivos.</p></div>
-        </div>
-        <div class="profile"><span class="avatar" id="profile-avatar"></span><span class="profile-name" id="profile-name">Invitado</span><button class="text-button" id="edit-profile">Editar</button></div>
-      </header>
-      <div class="layout">
-        <section class="panel calendar-panel" aria-label="Calendario">
-          <div class="calendar-head">
-            <div><div class="month-title" id="month-title">Mes</div><div class="subtitle" id="month-subtitle">Selecciona un día para ver sus eventos</div></div>
-            <div class="month-controls"><button class="icon-button" id="prev-month" aria-label="Mes anterior">‹</button><button class="icon-button" id="next-month" aria-label="Mes siguiente">›</button><button class="today-button" id="go-today">Hoy</button></div>
-          </div>
-          <div class="weekdays" aria-hidden="true"><div class="weekday">Lun</div><div class="weekday">Mar</div><div class="weekday">Mié</div><div class="weekday">Jue</div><div class="weekday">Vie</div><div class="weekday">Sáb</div><div class="weekday">Dom</div></div>
-          <div class="days-grid" id="days-grid"></div>
-          <div class="legend" id="legend"></div>
-        </section>
-        <aside class="side">
-          <section class="panel side-card"><h2 class="side-heading">Conexión</h2><div class="status"><span class="status-dot" id="connection-dot"></span><span id="connection-text">Conectando con Firebase…</span></div><p class="notice" id="connection-help">La sincronización requiere que Firebase esté configurado y que la autenticación anónima esté habilitada.</p></section>
-          <section class="panel side-card"><h2 class="side-heading">Próximamente</h2><div class="event-list" id="upcoming-events"><p class="empty">No hay días seleccionados. Añade uno desde cualquier día del calendario.</p></div></section>
-          <section class="panel side-card"><h2 class="side-heading">Código de colores</h2><div class="event-list" id="upcoming-events"><p class="notice2">Verde = vacaciones.</p><p class="notice2">Naranja = día de libre.</p><p class="notice2">Rojo = festivo.</p><p class="notice2">Morado = otros.</p><p class="notice2">Gris = no confirmado.</p></div></section>
-          <section class="panel side-card"><h2 class="side-heading">Añadir</h2><p class="empty">Selecciona una fecha, pon tu nombre y añade el tipo de día que quieres pedir.</p><button class="primary-button" id="quick-add">＋ Crear evento</button></section>
-        </aside>
-      </div>
-    </div>
-  </main>
-  <div class="modal-backdrop" id="event-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <form class="modal" id="event-form">
-      <div class="modal-head"><div><h2 id="modal-title">Evento del día</h2><div class="modal-subtitle" id="modal-date"></div></div><button type="button" class="close-button" id="close-modal" aria-label="Cerrar">×</button></div>
-      <div class="field"><label for="event-title">Nombre</label><input id="event-title" maxlength="100" placeholder="Ej. Cena de equipo"></div>
-      <div class="field"><label for="event-notes">Tipo de día</label><textarea id="event-notes" maxlength="1500" placeholder="Añade detalles, lugar, recordatorios…"></textarea></div>
-      <div class="field"><label>Tu color</label><div class="color-row" id="color-choices"></div></div>
-      <div class="field" id="last-editor-field" hidden><label>Última edición</label><div class="empty" id="last-editor"></div></div>
-      <div class="modal-actions"><button type="button" class="secondary-button" id="cancel-modal">Cancelar</button><button type="submit" class="primary-button" id="save-event">Guardar evento</button></div>
-      <p class="notice">Al guardar, el evento se sincroniza con las demás personas que tengan acceso a esta base de datos.</p>
-    </form>
-  </div>
-  <div class="modal-backdrop" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
-    <form class="modal" id="profile-form"><div class="modal-head"><div><h2 id="profile-title">Tu perfil</h2><div class="modal-subtitle">Tu nombre y color aparecerán en los eventos que guardes.</div></div><button type="button" class="close-button" id="close-profile" aria-label="Cerrar">×</button></div><div class="field"><label for="name-input">Nombre visible</label><input id="name-input" maxlength="40" placeholder="Ej. Alex" required></div><div class="field"><label>Color personal</label><div class="color-row" id="profile-colors"></div></div><div class="modal-actions"><button type="button" class="secondary-button" id="cancel-profile">Cancelar</button><button type="submit" class="primary-button">Guardar perfil</button></div><p class="notice">Este nombre es una etiqueta visible, no una verificación de identidad. Para producción, combina Firebase Authentication con reglas de acceso apropiadas.</p></form>
-  </div>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  <script>
-    // Firebase project from the original example. Check that Anonymous Authentication is enabled.
-    const firebaseConfig = {
-      apiKey: "AIzaSyD5e8Pw6A1F_Pe8DtSwglEKqprLAV9RIww", // Optional for this database-only setup; add your Web API key from Firebase project settings if required.
-      authDomain: "calendario-48225.firebaseapp.com",
-      databaseURL: "https://calendario-48225-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "calendario-48225",
-      appId: "AIzaSyD5e8Pw6A1F_Pe8DtSwglEKqprLAV9RIww" // Add the Web App ID from Firebase project settings if required by your configuration.
-    };
-    const COLORS = ["#6558e8", "#e05270", "#159d83", "#e39b2f", "#64748b"];
-    const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-    const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const prettyDate = d => `${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`;
-    const today = new Date();
-    let viewYear = today.getFullYear(), viewMonth = today.getMonth(), selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    let events = {}, database = null, authUser = null, firebaseReady = false;
-    let profile = { name: localStorage.getItem("calendar-name") || "Invitado", color: localStorage.getItem("calendar-color") || COLORS[0] };
-    const $ = id => document.getElementById(id);
-
-    function setConnection(online, message, help) {
-      $("connection-dot").classList.toggle("online", online);
-      $("connection-text").textContent = message;
-      if (help) $("connection-help").textContent = help;
+<main class="app"><div class="shell">
+<header class="topline"><div class="brand"><div class="brand-icon" aria-hidden="true">▦</div><div><h1>Calendario Auto+</h1><p class="subtitle">Vacaciones, días de libre disposición y festivos.</p></div></div>
+<div class="profile"><span class="avatar" id="profile-avatar"></span><span class="profile-name" id="profile-name">Invitado</span><button class="text-button" id="edit-profile">Editar</button></div></header>
+<div class="layout">
+<section class="panel calendar-panel" aria-label="Calendario"><div class="calendar-head"><div><div class="month-title" id="month-title">Mes</div><div class="subtitle" id="month-subtitle">Selecciona un día para ver sus eventos</div></div><div class="month-controls"><button class="icon-button" id="prev-month" aria-label="Mes anterior">‹</button><button class="icon-button" id="next-month" aria-label="Mes siguiente">›</button><button class="today-button" id="go-today">Hoy</button></div></div>
+<div class="weekdays" aria-hidden="true"><div class="weekday">Lun</div><div class="weekday">Mar</div><div class="weekday">Mié</div><div class="weekday">Jue</div><div class="weekday">Vie</div><div class="weekday">Sáb</div><div class="weekday">Dom</div></div><div class="days-grid" id="days-grid"></div><div class="legend" id="legend"></div></section>
+<aside class="side">
+<section class="panel side-card"><h2 class="side-heading">Conexión</h2><div class="status"><span class="status-dot" id="connection-dot"></span><span id="connection-text">Conectando con Firebase…</span></div><p class="notice" id="connection-help">La sincronización requiere Firebase y autenticación anónima habilitada.</p></section>
+<section class="panel side-card"><h2 class="side-heading">Próximamente</h2><div class="event-list" id="upcoming-events"><p class="empty">Todavía no hay eventos.</p></div></section>
+<section class="panel side-card"><h2 class="side-heading">Código de colores</h2><p class="notice">Verde = vacaciones · Naranja = libre disposición · Rojo = festivo · Morado = otros · Gris = no confirmado. Puedes elegir el color de cada evento.</p></section>
+<section class="panel side-card"><h2 class="side-heading">Añadir</h2><p class="empty">Selecciona una fecha y crea tantos eventos como necesites.</p><button class="primary-button" id="quick-add">＋ Crear evento</button></section>
+</aside></div></div></main>
+<div class="modal-backdrop" id="day-modal" role="dialog" aria-modal="true" aria-labelledby="day-modal-title"><div class="modal"><div class="modal-head"><div><h2 id="day-modal-title">Eventos del día</h2><div class="modal-subtitle" id="day-modal-date"></div></div><button class="close-button" id="close-day-modal" aria-label="Cerrar">×</button></div><div id="day-event-list"></div><div class="modal-actions"><button class="secondary-button" id="close-day-bottom">Cerrar</button><button class="primary-button" id="add-another">＋ Nuevo evento</button></div></div></div>
+<div class="modal-backdrop" id="event-modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title"><form class="modal" id="event-form"><div class="modal-head"><div><h2 id="event-modal-title">Nuevo evento</h2><div class="modal-subtitle" id="event-modal-date"></div></div><button type="button" class="close-button" id="close-event-modal" aria-label="Cerrar">×</button></div>
+<div class="field"><label for="event-title">Nombre del evento</label><input id="event-title" maxlength="100" placeholder="Ej. Vacaciones, cita, festivo…" required></div>
+<div class="field"><label for="event-notes">Detalles (opcional)</label><textarea id="event-notes" maxlength="1500" placeholder="Horario, tipo de día, lugar, recordatorios…"></textarea></div>
+<div class="field"><label for="event-category">Categoría</label><select id="event-category"><option value="vacaciones">Vacaciones</option><option value="libre">Día de libre disposición</option><option value="festivo">Festivo</option><option value="otros" selected>Otros</option><option value="pendiente">No confirmado</option></select></div>
+<div class="field"><label>Color del evento</label><div class="color-row" id="event-colors"></div></div>
+<div class="notice" id="last-editor"></div><div class="modal-actions"><button type="button" class="secondary-button" id="cancel-event">Cancelar</button><button type="submit" class="primary-button" id="save-event">Guardar evento</button></div><p class="notice">Cada evento se guarda por separado. Si Firebase está conectado, los cambios se sincronizan con las demás personas con acceso.</p></form></div>
+<div class="modal-backdrop" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title"><form class="modal" id="profile-form"><div class="modal-head"><div><h2 id="profile-title">Tu perfil</h2><div class="modal-subtitle">Tu nombre aparecerá en los eventos que guardes.</div></div><button type="button" class="close-button" id="close-profile" aria-label="Cerrar">×</button></div><div class="field"><label for="name-input">Nombre visible</label><input id="name-input" maxlength="40" placeholder="Ej. Alex" required></div><div class="field"><label>Color personal</label><div class="color-row" id="profile-colors"></div></div><div class="modal-actions"><button type="button" class="secondary-button" id="cancel-profile">Cancelar</button><button type="submit" class="primary-button">Guardar perfil</button></div><p class="notice">El nombre es una etiqueta visible, no una verificación de identidad. Configura reglas de Firebase adecuadas antes de usarlo en producción.</p></form></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+"use strict";
+// Conserva la configuración del proyecto original. Verifica apiKey y appId en Firebase Console.
+const firebaseConfig={apiKey:"AIzaSyD5e8Pw6A1F_Pe8DtSwglEKqprLAV9RIww",authDomain:"calendario-48225.firebaseapp.com",databaseURL:"https://calendario-48225-default-rtdb.europe-west1.firebasedatabase.app",projectId:"calendario-48225",appId:"AIzaSyD5e8Pw6A1F_Pe8DtSwglEKqprLAV9RIww"};
+const COLORS=["#6558e8","#159d83","#e39b2f","#e05270","#64748b","#0ea5e9"];
+const CATEGORY_COLORS={vacaciones:"#159d83",libre:"#e39b2f",festivo:"#e05270",otros:"#6558e8",pendiente:"#64748b"};
+const CATEGORY_LABELS={vacaciones:"Vacaciones",libre:"Día de libre disposición",festivo:"Festivo",otros:"Otros",pendiente:"No confirmado"};
+const MONTHS=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const $=id=>document.getElementById(id);
+const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const prettyDate=d=>`${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`;
+const today=new Date();let viewYear=today.getFullYear(),viewMonth=today.getMonth(),selectedDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+let eventsByDate={},database=null,authUser=null,firebaseReady=false,editingEventId=null,eventColor=COLORS[0],profileColor=localStorage.getItem("calendar-color")||COLORS[0];
+let profile={name:localStorage.getItem("calendar-name")||"Invitado",color:profileColor};
+const newId=()=>`ev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`;
+function setConnection(online,message,help){$("connection-dot").classList.toggle("online",online);$("connection-text").textContent=message;if(help)$("connection-help").textContent=help;}
+function normalizeEvents(raw){
+  const result={};if(!raw||typeof raw!=="object")return result;
+  // Formato nuevo: { fecha: { id: evento, ... } }. También acepta arrays.
+  for(const [key,value] of Object.entries(raw)){
+    if(!value||typeof value!=="object")continue;
+    if(Array.isArray(value)){result[key]=value.filter(Boolean).map((ev,i)=>({...ev,id:ev.id||`legacy_${key}_${i}`}));continue;}
+    // Formato antiguo: { fecha: { title, notes, updatedBy... } }
+    if("title" in value||"notes" in value||"updatedBy" in value||"updatedByName" in value){
+      result[key]=[{...value,id:value.id||`legacy_${key}`}];continue;
     }
-    function renderProfile() {
-      $("profile-name").textContent = profile.name;
-      $("profile-avatar").style.setProperty("--person-color", profile.color);
-      renderLegend();
-    }
-    function renderColorChoices(containerId, selectedColor, callback) {
-      const container = $(containerId); container.replaceChildren();
-      COLORS.forEach(color => {
-        const button = document.createElement("button"); button.type = "button"; button.className = "color-choice" + (color === selectedColor ? " active" : ""); button.style.background = color; button.setAttribute("aria-label", `Elegir color ${color}`); button.setAttribute("aria-pressed", String(color === selectedColor));
-        button.addEventListener("click", () => { callback(color); renderColorChoices(containerId, color, callback); }); container.appendChild(button);
-      });
-    }
-    function renderLegend() {
-      const people = new Map();
-      Object.values(events).forEach(ev => { if (ev && ev.updatedByName) people.set(ev.updatedByName, ev.updatedByColor || COLORS[0]); });
-      people.set(profile.name, profile.color);
-      const legend = $("legend"); legend.replaceChildren();
-      [...people.entries()].slice(0, 8).forEach(([name,color]) => { const item=document.createElement("div"); item.className="legend-item"; const dot=document.createElement("span"); dot.className="legend-color"; dot.style.background=color; const label=document.createElement("span"); label.textContent=name; item.append(dot,label); legend.appendChild(item); });
-    }
-    function renderCalendar() {
-      $("month-title").textContent = `${MONTHS[viewMonth][0].toUpperCase()+MONTHS[viewMonth].slice(1)} ${viewYear}`;
-      $("month-subtitle").textContent = "Selecciona un día para ver o editar su evento";
-      const first = new Date(viewYear, viewMonth, 1);
-      const offset = (first.getDay() + 6) % 7;
-      const gridStart = new Date(viewYear, viewMonth, 1-offset);
-      const grid = $("days-grid"); grid.replaceChildren();
-      for (let i=0; i<42; i++) {
-        const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+i), key=dateKey(d), ev=events[key];
-        const button=document.createElement("button"); button.type="button"; button.className="day"; if(d.getMonth()!==viewMonth) button.classList.add("outside"); if(key===dateKey(today)) button.classList.add("today"); if(key===dateKey(selectedDate)) button.classList.add("selected");
-        button.setAttribute("aria-label", `${prettyDate(d)}${ev && ev.title ? ", "+ev.title : ""}`);
-        const number=document.createElement("span"); number.className="day-number"; number.textContent=d.getDate(); button.appendChild(number);
-        if(ev && (ev.title || ev.notes)) { const label=document.createElement("span"); label.className="event-label"; label.textContent=ev.title || "Nota"; button.appendChild(label); const markers=document.createElement("span"); markers.className="event-markers"; const dot=document.createElement("span"); dot.className="event-dot"; dot.style.background=ev.updatedByColor || COLORS[0]; dot.title=ev.updatedByName || "Participante"; markers.appendChild(dot); button.appendChild(markers); }
-        button.addEventListener("click", () => { selectedDate=d; if(d.getMonth()!==viewMonth){viewMonth=d.getMonth();viewYear=d.getFullYear();} renderCalendar(); openEventModal(d); }); grid.appendChild(button);
-      }
-      renderUpcoming(); renderLegend();
-    }
-    function renderUpcoming() {
-      const list=$("upcoming-events"); list.replaceChildren();
-      const todayKey=dateKey(today);
-      const upcoming=Object.entries(events).filter(([key,ev])=>key>=todayKey && ev && (ev.title || ev.notes)).sort(([a],[b])=>a.localeCompare(b)).slice(0,5);
-      if(!upcoming.length){const p=document.createElement("p");p.className="empty";p.textContent="Todavía no hay próximos eventos. Añade uno desde cualquier día del calendario.";list.appendChild(p);return;}
-      upcoming.forEach(([key,ev])=>{const item=document.createElement("div");item.className="event-item";item.style.setProperty("--event-color",ev.updatedByColor||COLORS[0]);const date=document.createElement("div");date.className="event-date";date.textContent=new Date(key+"T12:00:00").toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"});const title=document.createElement("div");title.className="event-title";title.textContent=ev.title||"Nota";const meta=document.createElement("div");meta.className="event-meta";meta.textContent=`${ev.updatedByName||"Participante"}${ev.notes?" · "+ev.notes:""}`;item.append(date,title,meta);item.addEventListener("click",()=>{selectedDate=new Date(key+"T12:00:00");viewYear=selectedDate.getFullYear();viewMonth=selectedDate.getMonth();renderCalendar();openEventModal(selectedDate);});list.appendChild(item);});
-    }
-    function openEventModal(date) {
-      selectedDate=new Date(date.getFullYear(),date.getMonth(),date.getDate()); const key=dateKey(selectedDate), ev=events[key]||{};
-      $("modal-title").textContent=ev.title?"Editar evento":"Añadir evento"; $("modal-date").textContent=prettyDate(selectedDate); $("event-title").value=ev.title||""; $("event-notes").value=ev.notes||"";
-      $("last-editor-field").hidden=!ev.updatedByName; $("last-editor").textContent=ev.updatedByName?`${ev.updatedByName}${ev.updatedAt?" · "+new Date(ev.updatedAt).toLocaleString("es-ES"):""}`:"";
-      renderColorChoices("color-choices",profile.color,color=>{profile.color=color;renderProfile();}); $("event-modal").classList.add("open"); setTimeout(()=>$("event-title").focus(),50);
-    }
-    function closeEventModal() { $("event-modal").classList.remove("open"); }
-    function openProfileModal() { $("name-input").value=profile.name==="Invitado"?"":profile.name; renderColorChoices("profile-colors",profile.color,color=>{profile.color=color;}); $("profile-modal").classList.add("open"); }
-    function closeProfileModal() { $("profile-modal").classList.remove("open"); }
-    async function saveEvent(event) {
-      event.preventDefault(); const key=dateKey(selectedDate), title=$("event-title").value.trim(), notes=$("event-notes").value.trim();
-      if(!title && !notes) {
-        if(firebaseReady && database){try{await database.ref(`calendar_events/${key}`).remove();}catch(err){alert("No se pudo borrar el evento: "+err.message);return;}}
-        else {delete events[key];}
-        closeEventModal();renderCalendar();return;
-      }
-      const record={title,notes,updatedBy:authUser?authUser.uid:"local-preview",updatedByName:profile.name,updatedByColor:profile.color,updatedAt:Date.now()};
-      try {
-        if(firebaseReady && database) await database.ref(`calendar_events/${key}`).set(record);
-        else {events[key]=record; setConnection(false,"Modo de demostración local","Firebase no está conectado: los cambios solo se guardan en esta pestaña y no se comparten con otros dispositivos.");}
-        closeEventModal();renderCalendar();
-      } catch(err) { alert("No se pudo guardar en Firebase. Comprueba las reglas de Realtime Database y la conexión.\n"+err.message); }
-    }
-    function initFirebase() {
-      if(!window.firebase || !firebase.apps) { setConnection(false,"Modo de demostración local","No se han podido cargar las bibliotecas de Firebase. La vista sigue funcionando localmente, pero no sincroniza dispositivos."); return; }
-      try {
-        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth=firebase.auth(); database=firebase.database();
-        auth.signInAnonymously().then(userCredential=>{
-          authUser=userCredential.user; firebaseReady=true; setConnection(true,"Conectado · sincronización activa","Sesión anónima de Firebase activa. Los cambios de calendario se sincronizan en tiempo real.");
-          database.ref("calendar_events").on("value",snapshot=>{events=snapshot.val()||{};renderCalendar();},error=>{firebaseReady=false;setConnection(false,"Error al leer la base de datos",error.message);});
-        }).catch(err=>{setConnection(false,"No se pudo iniciar sesión",`Activa Authentication → Sign-in method → Anonymous en Firebase. Detalle: ${err.message}`);});
-      } catch(err) { setConnection(false,"Firebase no está configurado",`Revisa la configuración de la app web y las reglas de Realtime Database. Detalle: ${err.message}`); }
-    }
-    $("prev-month").addEventListener("click",()=>{viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}renderCalendar();});
-    $("next-month").addEventListener("click",()=>{viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}renderCalendar();});
-    $("go-today").addEventListener("click",()=>{viewYear=today.getFullYear();viewMonth=today.getMonth();selectedDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());renderCalendar();});
-    $("quick-add").addEventListener("click",()=>openEventModal(selectedDate));
-    $("close-modal").addEventListener("click",closeEventModal); $("cancel-modal").addEventListener("click",closeEventModal); $("event-form").addEventListener("submit",saveEvent);
-    $("event-modal").addEventListener("click",e=>{if(e.target===$("event-modal"))closeEventModal();});
-    $("edit-profile").addEventListener("click",openProfileModal); $("close-profile").addEventListener("click",closeProfileModal); $("cancel-profile").addEventListener("click",closeProfileModal); $("profile-modal").addEventListener("click",e=>{if(e.target===$("profile-modal"))closeProfileModal();});
-    $("profile-form").addEventListener("submit",e=>{e.preventDefault();profile.name=$("name-input").value.trim()||"Invitado";localStorage.setItem("calendar-name",profile.name);localStorage.setItem("calendar-color",profile.color);renderProfile();closeProfileModal();renderCalendar();});
-    document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeEventModal();closeProfileModal();}});
-    renderProfile(); renderCalendar(); initFirebase();
-  </script>
-</body>
-</html>
+    result[key]=Object.entries(value).filter(([,ev])=>ev&&typeof ev==="object").map(([id,ev])=>({...ev,id:ev.id||id}));
+  }return result;
+}
+function getEvents(key){return eventsByDate[key]||[];}
+function eventColorFor(ev){return ev.color||ev.updatedByColor||CATEGORY_COLORS[ev.category]||COLORS[0];}
+function renderProfile(){ $("profile-name").textContent=profile.name;$("profile-avatar").style.setProperty("--person-color",profile.color);renderLegend();}
+function renderColorChoices(containerId,selectedColor,callback){const container=$(containerId);container.replaceChildren();COLORS.forEach(color=>{const b=document.createElement("button");b.type="button";b.className="color-choice"+(color===selectedColor?" active":"");b.style.background=color;b.setAttribute("aria-label",`Elegir color ${color}`);b.setAttribute("aria-pressed",String(color===selectedColor));b.addEventListener("click",()=>{callback(color);renderColorChoices(containerId,color,callback);});container.appendChild(b);});}
+function renderLegend(){const people=new Map();Object.values(eventsByDate).flat().forEach(ev=>{if(ev&&ev.updatedByName)people.set(ev.updatedByName,ev.updatedByColor||COLORS[0]);});people.set(profile.name,profile.color);const el=$("legend");el.replaceChildren();[...people.entries()].slice(0,8).forEach(([name,color])=>{const item=document.createElement("div");item.className="legend-item";const dot=document.createElement("span");dot.className="legend-color";dot.style.background=color;const label=document.createElement("span");label.textContent=name;item.append(dot,label);el.appendChild(item);});}
+function renderCalendar(){
+ $("month-title").textContent=`${MONTHS[viewMonth][0].toUpperCase()+MONTHS[viewMonth].slice(1)} ${viewYear}`;$("month-subtitle").textContent="Selecciona un día para ver, editar o añadir eventos";
+ const first=new Date(viewYear,viewMonth,1),offset=(first.getDay()+6)%7,gridStart=new Date(viewYear,viewMonth,1-offset),grid=$("days-grid");grid.replaceChildren();
+ for(let i=0;i<42;i++){const d=new Date(gridStart.getFullYear(),gridStart.getMonth(),gridStart.getDate()+i),key=dateKey(d),dayEvents=getEvents(key);const b=document.createElement("button");b.type="button";b.className="day";if(d.getMonth()!==viewMonth)b.classList.add("outside");if(key===dateKey(today))b.classList.add("today");if(key===dateKey(selectedDate))b.classList.add("selected");b.setAttribute("aria-label",`${prettyDate(d)}, ${dayEvents.length} evento(s)`);
+ const n=document.createElement("span");n.className="day-number";n.textContent=d.getDate();b.appendChild(n);
+ if(dayEvents.length){const labels=document.createElement("span");labels.className="event-label";labels.textContent=dayEvents.length===1?(dayEvents[0].title||"Evento"):`${dayEvents.length} eventos`;b.appendChild(labels);const dots=document.createElement("span");dots.className="day-events";dayEvents.slice(0,8).forEach(ev=>{const dot=document.createElement("span");dot.className="event-dot";dot.style.background=eventColorFor(ev);dot.title=ev.title||"Evento";dots.appendChild(dot);});b.appendChild(dots);}
+ b.addEventListener("click",()=>{selectedDate=new Date(d.getFullYear(),d.getMonth(),d.getDate());if(d.getMonth()!==viewMonth){viewMonth=d.getMonth();viewYear=d.getFullYear();}renderCalendar();openDayModal(selectedDate);});grid.appendChild(b);
+ }renderUpcoming();renderLegend();
+}
+function renderUpcoming(){const list=$("upcoming-events");list.replaceChildren();const todayKey=dateKey(today);const upcoming=[];for(const [key,arr] of Object.entries(eventsByDate)){if(key>=todayKey)arr.forEach(ev=>{if(ev&&(ev.title||ev.notes))upcoming.push({key,ev});});}upcoming.sort((a,b)=>a.key.localeCompare(b.key)).splice(5);
+ if(!upcoming.length){const p=document.createElement("p");p.className="empty";p.textContent="Todavía no hay próximos eventos. Añade uno desde el calendario.";list.appendChild(p);return;}
+ upcoming.forEach(({key,ev})=>{const item=document.createElement("div");item.className="event-item";item.style.setProperty("--event-color",eventColorFor(ev));const date=document.createElement("div");date.className="event-date";date.textContent=new Date(key+"T12:00:00").toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"});const title=document.createElement("div");title.className="event-title";title.textContent=ev.title||"Evento";const meta=document.createElement("div");meta.className="event-meta";meta.textContent=`${ev.updatedByName||"Participante"}${ev.category?" · "+(CATEGORY_LABELS[ev.category]||ev.category):""}`;item.append(date,title,meta);item.tabIndex=0;item.role="button";item.addEventListener("click",()=>{selectedDate=new Date(key+"T12:00:00");viewYear=selectedDate.getFullYear();viewMonth=selectedDate.getMonth();renderCalendar();openDayModal(selectedDate);});list.appendChild(item);});
+}
+function openDayModal(date){selectedDate=new Date(date.getFullYear(),date.getMonth(),date.getDate());$("day-modal-title").textContent="Eventos del día";$("day-modal-date").textContent=prettyDate(selectedDate);renderDayEvents();$("day-modal").classList.add("open");}
+function renderDayEvents(){const key=dateKey(selectedDate),list=$("day-event-list");list.replaceChildren();const arr=getEvents(key);if(!arr.length){const p=document.createElement("p");p.className="empty";p.textContent="No hay eventos para esta fecha. Añade el primero.";list.appendChild(p);return;}
+ arr.forEach(ev=>{const row=document.createElement("div");row.className="event-row";const dot=document.createElement("span");dot.className="event-row-color";dot.style.background=eventColorFor(ev);const main=document.createElement("div");main.className="event-row-main";const title=document.createElement("div");title.className="event-row-title";title.textContent=ev.title||"Evento";main.appendChild(title);const category=document.createElement("div");category.className="event-meta";category.textContent=`${CATEGORY_LABELS[ev.category]||"Evento"} · ${ev.updatedByName||"Participante"}`;main.appendChild(category);if(ev.notes){const notes=document.createElement("div");notes.className="event-row-notes";notes.textContent=ev.notes;main.appendChild(notes);}
+ const actions=document.createElement("div");actions.className="small-actions";const edit=document.createElement("button");edit.type="button";edit.textContent="Editar";edit.addEventListener("click",()=>openEventModal(ev.id));const del=document.createElement("button");del.type="button";del.textContent="Borrar";del.className="delete";del.addEventListener("click",()=>deleteEvent(ev.id));actions.append(edit,del);row.append(dot,main,actions);list.appendChild(row);});
+}
+function openEventModal(id=null){editingEventId=id;const key=dateKey(selectedDate),ev=id?getEvents(key).find(x=>x.id===id):null;$("event-modal-title").textContent=ev?"Editar evento":"Nuevo evento";$("event-modal-date").textContent=prettyDate(selectedDate);$("event-title").value=ev?.title||"";$("event-notes").value=ev?.notes||"";$("event-category").value=ev?.category||"otros";eventColor=ev?eventColorFor(ev):(CATEGORY_COLORS[$("event-category").value]||profile.color);$("last-editor").textContent=ev?.updatedByName?`Última edición: ${ev.updatedByName}${ev.updatedAt?" · "+new Date(ev.updatedAt).toLocaleString("es-ES"):""}`:"";renderColorChoices("event-colors",eventColor,c=>{eventColor=c;});$("day-modal").classList.remove("open");$("event-modal").classList.add("open");setTimeout(()=>$("event-title").focus(),50);}
+function closeEventModal(){ $("event-modal").classList.remove("open");}
+function closeDayModal(){ $("day-modal").classList.remove("open");}
+async function persistDate(key){
+ if(firebaseReady&&database){const obj={};getEvents(key).forEach(ev=>{const {id,...data}=ev;obj[id]=data;});if(Object.keys(obj).length)await database.ref(`calendar_events/${key}`).set(obj);else await database.ref(`calendar_events/${key}`).remove();}
+}
+async function saveEvent(e){e.preventDefault();const key=dateKey(selectedDate),title=$("event-title").value.trim(),notes=$("event-notes").value.trim(),category=$("event-category").value;if(!title){$("event-title").focus();return;}
+ const arr=getEvents(key).slice(),old=editingEventId?arr.find(ev=>ev.id===editingEventId):null;
+ const record={id:editingEventId||newId(),title,notes,category,color:eventColor,updatedBy:authUser?.uid||"local-preview",updatedByName:profile.name,updatedByColor:profile.color,updatedAt:Date.now()};
+ const next=old?arr.map(ev=>ev.id===editingEventId?record:ev):[...arr,record];eventsByDate[key]=next;
+ try{await persistDate(key);if(!firebaseReady)setConnection(false,"Modo local de demostración","Firebase no está conectado: los cambios solo se guardan en esta pestaña y no se comparten con otros dispositivos.");closeEventModal();renderCalendar();openDayModal(selectedDate);}
+ catch(err){eventsByDate[key]=arr;alert("No se pudo guardar en Firebase. Comprueba las reglas de Realtime Database y la conexión.\\n"+err.message);renderCalendar();}
+}
+async function deleteEvent(id){const key=dateKey(selectedDate),arr=getEvents(key),ev=arr.find(x=>x.id===id);if(!ev)return;if(!confirm(`¿Borrar el evento «${ev.title||"Evento"}»? Esta acción no se puede deshacer.`))return;eventsByDate[key]=arr.filter(x=>x.id!==id);try{await persistDate(key);renderCalendar();renderDayEvents();}catch(err){eventsByDate[key]=arr;alert("No se pudo borrar el evento: "+err.message);renderCalendar();renderDayEvents();}}
+function openProfileModal(){$("name-input").value=profile.name==="Invitado"?"":profile.name;renderColorChoices("profile-colors",profile.color,c=>{profile.color=c;});$("profile-modal").classList.add("open");}
+function closeProfileModal(){$("profile-modal").classList.remove("open");}
+function initFirebase(){if(!window.firebase||!firebase.apps){setConnection(false,"Modo local de demostración","No se han podido cargar las bibliotecas de Firebase. La app funcionará localmente, sin sincronización.");return;}
+ try{if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);const auth=firebase.auth();database=firebase.database();auth.signInAnonymously().then(credential=>{authUser=credential.user;firebaseReady=true;setConnection(true,"Conectado · sincronización activa","Firebase está activo. Los cambios se sincronizan en tiempo real.");database.ref("calendar_events").on("value",snapshot=>{eventsByDate=normalizeEvents(snapshot.val()||{});renderCalendar();if($("day-modal").classList.contains("open"))renderDayEvents();},error=>{firebaseReady=false;setConnection(false,"Error al leer la base de datos",error.message);});}).catch(err=>setConnection(false,"No se pudo iniciar sesión",`Activa Authentication → Sign-in method → Anonymous en Firebase. Detalle: ${err.message}`));}
+ catch(err){setConnection(false,"Firebase no está configurado",`Revisa la configuración de la app web y las reglas de Realtime Database. Detalle: ${err.message}`);}}
+$("prev-month").addEventListener("click",()=>{viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}renderCalendar();});$("next-month").addEventListener("click",()=>{viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}renderCalendar();});$("go-today").addEventListener("click",()=>{viewYear=today.getFullYear();viewMonth=today.getMonth();selectedDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());renderCalendar();});
+$("quick-add").addEventListener("click",()=>openEventModal());$("add-another").addEventListener("click",()=>openEventModal());$("close-day-modal").addEventListener("click",closeDayModal);$("close-day-bottom").addEventListener("click",closeDayModal);$("close-event-modal").addEventListener("click",closeEventModal);$("cancel-event").addEventListener("click",closeEventModal);$("event-form").addEventListener("submit",saveEvent);
+$("event-category").addEventListener("change",()=>{eventColor=CATEGORY_COLORS[$("event-category").value]||profile.color;renderColorChoices("event-colors",eventColor,c=>{eventColor=c;});});
+$("day-modal").addEventListener("click",e=>{if(e.target===$("day-modal"))closeDayModal();});$("event-modal").addEventListener("click",e=>{if(e.target===$("event-modal"))closeEventModal();});
+$("edit-profile").addEventListener("click",openProfileModal);$("close-profile").addEventListener("click",closeProfileModal);$("cancel-profile").addEventListener("click",closeProfileModal);$("profile-modal").addEventListener("click",e=>{if(e.target===$("profile-modal"))closeProfileModal();});
+$("profile-form").addEventListener("submit",e=>{e.preventDefault();profile.name=$("name-input").value.trim()||"Invitado";profile.color=profileColor;localStorage.setItem("calendar-name",profile.name);localStorage.setItem("calendar-color",profile.color);renderProfile();closeProfileModal();renderCalendar();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDayModal();closeEventModal();closeProfileModal();}});
+renderProfile();renderCalendar();initFirebase();
+</script></body></html>
